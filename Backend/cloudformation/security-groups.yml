@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Security Group for Media Lambda Functions
+
+Resources:
+  MediaLiveInputSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: "MediaLiveInputSecurityGroup"
+      GroupDescription: "Security Group for Media Lambda Functions"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+
+Outputs:
+  MediaLiveInputSecurityGroupId:
+    Description: "Security Group ID for Media Lambda Functions"
+    Value: !Ref MediaLiveInputSecurityGroup
+    Export:
+      Name: "MediaLiveInputSecurityGroupId"

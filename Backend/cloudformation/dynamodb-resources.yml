@@ -1,0 +1,332 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: DynamoDB tables for TMS application
+
+Resources:
+  TMSSystemTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "TMSSystemTable"
+      AttributeDefinitions:
+        - AttributeName: "pk"
+          AttributeType: "S"
+        - AttributeName: "sk"
+          AttributeType: "S"
+        - AttributeName: "entity_type"
+          AttributeType: "S"
+        - AttributeName: "status"
+          AttributeType: "S"
+        - AttributeName: "due_date"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "pk"
+          KeyType: "HASH"
+        - AttributeName: "sk"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "statusIndex"
+          KeySchema:
+            - AttributeName: "pk"
+              KeyType: "HASH"
+            - AttributeName: "status"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: "dueDateIndex"
+          KeySchema:
+            - AttributeName: "pk"
+              KeyType: "HASH"
+            - AttributeName: "due_date"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: "EntityTypeIndex"
+          KeySchema:
+            - AttributeName: "pk"
+              KeyType: "HASH"
+            - AttributeName: "entity_type"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+  websocketTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "websocketTable"
+      AttributeDefinitions:
+        - AttributeName: "connectionId"
+          AttributeType: "S"
+        - AttributeName: "user_email"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "connectionId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "userEmailIndex"
+          KeySchema:
+            - AttributeName: "user_email"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+
+  ChatTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "ChatTable"
+      AttributeDefinitions:
+        - AttributeName: "room_id"
+          AttributeType: "S"
+        - AttributeName: "created_at"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "room_id"
+          KeyType: "HASH"
+        - AttributeName: "created_at"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+  ChatRoomTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "ChatRoomTable"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
+          AttributeType: "S"
+        - AttributeName: "last_chatted_at"
+          AttributeType: "S"
+        - AttributeName: "room_id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "room_id"
+          KeyType: "HASH"
+        - AttributeName: "user_email"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "userEmailIndex"
+          KeySchema:
+            - AttributeName: "user_email"
+              KeyType: "HASH"
+            - AttributeName: "last_chatted_at"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+  MediaTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "MediaTable"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "user_email"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  FileTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "FileTable"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
+          AttributeType: "S"
+        - AttributeName: "id"
+          AttributeType: "S"
+        - AttributeName: "created_at"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "user_email"
+          KeyType: "HASH"
+        - AttributeName: "id"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "createdAtIndex"
+          KeySchema:
+            - AttributeName: "user_email"
+              KeyType: "HASH"
+            - AttributeName: "created_at"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+
+  NotificationTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "NotificationTable"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
+          AttributeType: "S"
+        - AttributeName: "created_at"
+          AttributeType: "S"
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "userEmailIndex"
+          KeySchema:
+            - AttributeName: "user_email"
+              KeyType: "HASH"
+            - AttributeName: "created_at"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+  IssueTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "IssueTable"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
+          AttributeType: "S"
+        - AttributeName: "created_at"
+          AttributeType: "S"
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: "userEmailIndex"
+          KeySchema:
+            - AttributeName: "user_email"
+              KeyType: "HASH"
+            - AttributeName: "created_at"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+Outputs:
+  TMSSystemTableArn:
+    Description: "TMS System DynamoDB Table ARN"
+    Value: !GetAtt TMSSystemTable.Arn
+    Export:
+      Name: "TMSSystemTableArn"
+
+  TMSSystemTableStreamArn:
+    Description: "TMS System DynamoDB Table Stream ARN"
+    Value: !GetAtt TMSSystemTable.StreamArn
+    Export:
+      Name: "TMSSystemTableStreamArn"
+
+  WebSocketTableArn:
+    Description: "WebSocket DynamoDB Table ARN"
+    Value: !GetAtt websocketTable.Arn
+    Export:
+      Name: "WebSocketTableArn"
+
+  ChatTableArn:
+    Description: "Chat DynamoDB Table ARN"
+    Value: !GetAtt ChatTable.Arn
+    Export:
+      Name: "ChatTableArn"
+
+  ChatRoomTableArn:
+    Description: "ChatRoom DynamoDB Table ARN"
+    Value: !GetAtt ChatRoomTable.Arn
+    Export:
+      Name: "ChatRoomTableArn"
+
+  MediaTableArn:
+    Description: "Media DynamoDB Table ARN"
+    Value: !GetAtt MediaTable.Arn
+    Export:
+      Name: "MediaTableArn"
+
+  FileTableArn:
+    Description: "File DynamoDB Table ARN"
+    Value: !GetAtt FileTable.Arn
+    Export:
+      Name: "FileTableArn"
+
+  NotificationTableArn:
+    Description: "Notification DynamoDB Table ARN"
+    Value: !GetAtt NotificationTable.Arn
+    Export:
+      Name: "NotificationTableArn"
+
+  NotificationTableStreamArn:
+    Description: "Notification DynamoDB Table Stream ARN"
+    Value: !GetAtt NotificationTable.StreamArn
+    Export:
+      Name: "NotificationTableStreamArn"
+
+  IssueTableArn:
+    Description: "Issue DynamoDB Table ARN"
+    Value: !GetAtt IssueTable.Arn
+    Export:
+      Name: "IssueTableArn"
+
+  IssueTableStreamArn:
+    Description: "Issue DynamoDB Table Stream ARN"
+    Value: !GetAtt IssueTable.StreamArn
+    Export:
+      Name: "IssueTableStreamArn"
+
+  ChatRoomTableStreamArn:
+    Description: "ChatRoom DynamoDB Table Stream ARN"
+    Value: !GetAtt ChatRoomTable.StreamArn
+    Export:
+      Name: "ChatRoomTableStreamArn"
+
+  ChatTableStreamArn:
+    Description: "Chat DynamoDB Table Stream ARN"
+    Value: !GetAtt ChatTable.StreamArn
+    Export:
+      Name: "ChatTableStreamArn"

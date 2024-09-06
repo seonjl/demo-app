@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: S3 bucket and SNS resources for TMS application
+
+Resources:
+  FileInventoryBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "file-inventory-bucket-2024-08-27"
+      AccessControl: "Private"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - "GET"
+              - "PUT"
+              - "POST"
+              - "DELETE"
+              - "HEAD"
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - "ETag"
+            MaxAge: 3000
+      VersioningConfiguration:
+        Status: "Enabled"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: "DeleteOldFiles"
+            Status: "Enabled"
+            ExpirationInDays: 30
+
+  NotificationTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "notification-topic"
+      DisplayName: "NotificationTopic"
+
+  NotificationQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: "notification-queue"
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationDLQ.Arn
+        maxReceiveCount: 5
+
+  NotificationDLQ:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      QueueName: "notification-dlq"
+      VisibilityTimeout: 300
+      MessageRetentionPeriod: 86400
+
+  NotificationSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "sqs"
+      TopicArn: !Ref NotificationTopic
+      Endpoint: !GetAtt NotificationQueue.Arn
+      RawMessageDelivery: "true"
+
+  NotificationTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      Topics:
+        - !Ref NotificationTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: "*"
+            Action: "sns:Publish"
+            Resource: !Ref NotificationTopic
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Ref NotificationTopic
+
+  NotificationQueuePolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        - !Ref NotificationQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt NotificationQueue.Arn
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Ref NotificationTopic
+
+  NotificationDLQPolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        - !Ref NotificationDLQ
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt NotificationDLQ.Arn
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !Ref NotificationQueue
+
+Outputs:
+  FileInventoryBucketName:
+    Description: "S3 Bucket Name for File Inventory"
+    Value: !Ref FileInventoryBucket
+    Export:
+      Name: "FileInventoryBucketName"
+
+  FileInventoryBucketArn:
+    Description: "S3 Bucket ARN for File Inventory"
+    Value: !GetAtt FileInventoryBucket.Arn
+    Export:
+      Name: "FileInventoryBucketArn"
+
+  NotificationTopicArn:
+    Description: "SNS Notification Topic ARN"
+    Value: !Ref NotificationTopic
+    Export:
+      Name: "NotificationTopicArn"
+
+  NotificationQueueArn:
+    Description: "SQS Notification Queue ARN"
+    Value: !GetAtt NotificationQueue.Arn
+    Export:
+      Name: "NotificationQueueArn"

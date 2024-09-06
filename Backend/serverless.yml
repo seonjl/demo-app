@@ -1,0 +1,399 @@
+service: wowowo
+frameworkVersion: "3"
+
+package:
+  excludeDevDependencies: true
+  patterns:
+    - "!src/**"
+    - "!.jest/**"
+    - "!scripts/**"
+    - "!*.md"
+    - "!*.sh"
+    - "!*.gitignore"
+    - "!*.eslintignore"
+
+plugins:
+  - serverless-deployment-bucket
+  - serverless-dotenv-plugin
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  deploymentMethod: direct
+  stage: ${opt:stage, 'dev'}
+  iam:
+    role: LambdaRole
+  environment:
+    stage: ${opt:stage, self:provider.stage}
+    MEDIA_LIVE_INPUT_SECURITY_GROUP_ID: !ImportValue MediaLiveInputSecurityGroupId
+    WEBSOCKET_API_ID:
+      Ref: WebsocketsApi
+    API_GATEWAY_REST_API_ID:
+      Ref: HttpApi
+  httpApi:
+    cors: true
+    authorizers:
+      internalAuthorizer:
+        type: request
+        functionName: internal_authorizer
+        identitySource:
+          - $request.header.Authorization
+        enableSimpleResponses: true
+        payloadVersion: "2.0"
+  deploymentBucket:
+    name: ${self:service}-${self:provider.stage}-deployment-bucket-${aws:accountId}
+    blockPublicAccess: true
+
+functions:
+  s3ObjectCreatedEventFunction:
+    handler: dist/lambda/event/s3-object-created.handler
+    events:
+      - s3:
+          bucket: !ImportValue FileInventoryBucketName
+          event: s3:ObjectCreated:*
+          existing: true
+
+  v1_auth_google_authorize:
+    handler: dist/routes/v1/auth/google/authorize/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/auth/google/authorize
+
+  v1_auth_google_refresh:
+    handler: dist/routes/v1/auth/google/refresh/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/auth/google/refresh
+
+  v1_auth_google_revoke:
+    handler: dist/routes/v1/auth/google/revoke/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/auth/google/revoke
+
+  v1_file_list:
+    handler: dist/routes/v1/file/list/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/files
+          authorizer:
+            name: internalAuthorizer
+
+  v1_file_upload:
+    handler: dist/routes/v1/file/upload/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/files/upload
+          authorizer:
+            name: internalAuthorizer
+
+  v1_file_download:
+    handler: dist/routes/v1/file/download/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/files/download
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_create:
+    handler: dist/routes/v1/issue/create/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/issues
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_list:
+    handler: dist/routes/v1/issue/list/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/issues
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_update:
+    handler: dist/routes/v1/issue/update/index.handler
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/issues/{issueId}
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_delete:
+    handler: dist/routes/v1/issue/delete/index.handler
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/issues/{issueId}
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_subscribe:
+    handler: dist/routes/v1/issue/subscribe/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/issues/{issueId}/subscribe
+          authorizer:
+            name: internalAuthorizer
+
+  v1_issue_unsubscribe:
+    handler: dist/routes/v1/issue/unsubscribe/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/issues/{issueId}/unsubscribe
+          authorizer:
+            name: internalAuthorizer
+
+  v1_me_get:
+    handler: dist/routes/v1/me/get/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/me
+          authorizer:
+            name: internalAuthorizer
+
+  v1_chat_list:
+    handler: dist/routes/v1/chatroom/chat/list/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/chatrooms/{room_id}/chats
+          authorizer:
+            name: internalAuthorizer
+
+  v1_chat_create:
+    handler: dist/routes/v1/chatroom/chat/create/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/chatrooms/{room_id}/chats
+          authorizer:
+            name: internalAuthorizer
+
+  v1_chatroom_list:
+    handler: dist/routes/v1/chatroom/list/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/chatrooms
+          authorizer:
+            name: internalAuthorizer
+
+  v1_notification_list:
+    handler: dist/routes/v1/notification/list/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/notifications
+          authorizer:
+            name: internalAuthorizer
+
+  v1_notification_read:
+    handler: dist/routes/v1/notification/read/index.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/notifications/{notificationId}/read
+          authorizer:
+            name: internalAuthorizer
+
+  internal_docs_html:
+    handler: dist/routes/internal/docs/html/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /internal/docs/html
+
+  internal_docs_json:
+    handler: dist/routes/internal/docs/json/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /internal/docs/json
+
+  internal_docs_yaml:
+    handler: dist/routes/internal/docs/yaml/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /internal/docs/yaml
+
+  internal_health:
+    handler: dist/routes/internal/health/index.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /internal/health
+
+  internal_authorizer:
+    handler: dist/lambda/authorizer/index.handler
+
+  websocket_connect:
+    handler: dist/lambda/websocket/index.handler
+    events:
+      - websocket:
+          route: $connect
+
+  websocket_disconnect:
+    handler: dist/lambda/websocket/index.handler
+    events:
+      - websocket:
+          route: $disconnect
+
+  websocket_default:
+    handler: dist/lambda/websocket/default/index.handler
+    events:
+      - websocket:
+          route: $default
+
+  notification_queue_consumer:
+    handler: dist/lambda/queue/notification-queue-consumer.handler
+    events:
+      - sqs:
+          arn: !ImportValue NotificationQueueArn
+
+  notification_table_stream_trigger:
+    handler: dist/lambda/stream/notification-table-stream-triggered.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: !ImportValue NotificationTableStreamArn
+    environment:
+      NOTIFICATION_TOPIC_ARN: !ImportValue NotificationTopicArn
+
+  issue_table_stream_trigger:
+    handler: dist/lambda/stream/issue-table-stream-triggered.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: !ImportValue IssueTableStreamArn
+
+  chatroom_table_stream_trigger:
+    handler: dist/lambda/stream/chatroom-table-stream-triggered.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: !ImportValue ChatRoomTableStreamArn
+    environment:
+      NOTIFICATION_TOPIC_ARN: !ImportValue NotificationTopicArn
+
+outputs:
+  ApiGatewayRestApiId:
+    Value:
+      Ref: HttpApi
+    Export:
+      Name: !Sub ${self:service}-${self:provider.stage}-HttpApiId
+  WebsocketApiId:
+    Value:
+      Ref: WebsocketsApi
+    Export:
+      Name: !Sub ${self:service}-${self:provider.stage}-WebsocketApiId
+
+resources:
+  Resources:
+    LambdaRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: "LambdaExecutionRole"
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - "lambda.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        Policies:
+          - PolicyName: "S3AccessPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "s3:*"
+                  Resource:
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue FileInventoryBucketArn
+                          - "*"
+          - PolicyName: "DDBAccessPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "dynamodb:*"
+                  Resource:
+                    - "arn:aws:dynamodb:*:*:table/*"
+                    - !ImportValue TMSSystemTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue TMSSystemTableArn
+                          - "index/*"
+                    - !ImportValue WebSocketTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue WebSocketTableArn
+                          - "index/*"
+                    - !ImportValue ChatTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue ChatTableArn
+                          - "index/*"
+                    - !ImportValue ChatRoomTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue ChatRoomTableArn
+                          - "index/*"
+                    - !ImportValue MediaTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue MediaTableArn
+                          - "index/*"
+                    - !ImportValue FileTableArn
+                    - Fn::Join:
+                        - "/"
+                        - - !ImportValue FileTableArn
+                          - "index/*"
+          - PolicyName: "TMSLambdaCloudWatchPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:PutLogEvents"
+                  Resource: "arn:aws:logs:*:*:*"
+          - PolicyName: "SNSAndSQSPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "sns:*"
+                    - "sqs:*"
+                  Resource: "*"
+          - PolicyName: "ManageConnections"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "execute-api:ManageConnections"
+                  Resource: "arn:aws:execute-api:*:*:*"

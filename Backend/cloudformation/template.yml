@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: "SAM template for TMS application"
+
+Globals:
+  Function:
+    Timeout: 60
+    Runtime: nodejs20.x
+
+Resources:
+  InternalAuthorizerFunction:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: dist/lambda/authorizer/index.handler
+      CodeUri: ../
+      Runtime: nodejs20.x
+      FunctionName: internal_authorizer
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /v1/auth/google/authorize
+            Method: POST
+
+  # S3ObjectCreatedEventFunction:
+  #   Type: "AWS::Serverless::Function"
+  #   Properties:
+  #     Handler: s3-object-created.handler
+  #     CodeUri: dist/lambda/event/
+  #     Runtime: nodejs20.x
+  #     FunctionName: s3ObjectCreatedEventFunction
+  #     Events:
+  #       S3Event:
+  #         Type: S3
+  #         Properties:
+  #           Bucket: !Ref FileInventoryBucket
+  #           Events: s3:ObjectCreated:*
